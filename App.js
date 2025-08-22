@@ -1,101 +1,89 @@
 import React, {useState} from 'react';
-import { KeyboardAvoidingView, StyleSheet, Text, View, TextInput, Platform, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
 import Task from './Components/Task';
+import { NavigationContainer } from '@react-navigation/native';
 
 export default function App() {
-  const [task, setTask] = useState();
-  const [taskItems, setTaskItems] = useState([]);
-
-  const handleAddTask = () => {
-   setTaskItems([...taskItems, task]);
-   setTask(null);
-  }
-
-
-
+  const [taskItems, setTaskItems] = useState([
+    'Pass Final Exams',
+    'Get Fit for Summer',
+    'Learn React Native',
+    'Complete Work Project'
+  ]);
   
   return (
+    <NavigationContainer>
     <View style={styles.container}>
       <View style={styles.tasksWrapper}>
-        <Text style={styles.sectionTitle}>Today's Tasks</Text>
-        <View style={styles.items}>
+        <Text style={styles.sectionTitle}>Active Tasks</Text>
+        <ScrollView 
+          style={styles.items}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           {
             taskItems.map((item, index) => {
               return <Task key={index} text={item} />
             } )
           }
-        </View>
+        </ScrollView>
       </View>
-
-      <KeyboardAvoidingView  
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.writeTaskWrapper}
-        >
-        <TextInput style={styles.input} placeholder={'Write a Task'}  value={task} onChangeText={text => setTask(text)}/>
-        <TouchableOpacity onPress={() => handleAddTask()} >
-          <View style={styles.addWrapper}>
-            <Text style={styles.addText}>+</Text>
-          </View>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    
+      
+      <TouchableOpacity 
+        style={styles.floatingButton}
+        onPress={() => console.log('Navigate to form')}
+      >
+        <Text style={styles.floatingButtonText}>+</Text>
+      </TouchableOpacity>
     </View>
+    </NavigationContainer>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E8EAED',
+    backgroundColor: '#0a0d11ff',
   },
   tasksWrapper:{
     paddingTop: 80,
-    paddingHorizontal:20,
+    paddingHorizontal: 20,
+    flex: 1,
   },
   sectionTitle:{
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#29ab4cff',
   },
   items:{
-    marginTop:30,
+    marginTop: 30,
+    flex: 1,
   },
-  writeTaskWrapper:{
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  floatingButton: {
     position: 'absolute',
-    bottom: 60,
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: '#E8EAED',
-    paddingHorizontal:10,
-
-  },
-  input:{
-    paddingVertical: 15,
-    width: 280,
-    paddingHorizontal: 15,
-    backgroundColor: '#fff',
-    borderRadius: 60,
-    borderColor: '#C0C0C0',
-    borderWidth: 1,
-  },
-  addWrapper:{
-    width: 50,
-    height: 50,
-    backgroundColor: '#55BCF6',
-    borderRadius: 60,
+    bottom: 30,
+    right: 30,
+    width: 60,
+    height: 60,
+    backgroundColor: '#29ab4cff',
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 10,
-    borderColor: '#C0C0C0',
-    borderWidth: 1,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
-  addText:{
+  floatingButtonText: {
     color: '#fff',
-    fontSize: 28,
-    fontWeight: 'medium',
+    fontSize: 32,
+    fontWeight: '600',
   },
-  
-
 });
