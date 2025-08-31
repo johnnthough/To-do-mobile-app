@@ -1,21 +1,90 @@
-import React from 'react'
-import { StyleSheet, Text, View, ScrollView } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 
-const Task = (props) => {
-  const smallGoals = [
-    { time: '5:30AM', text: 'Mon: Run 7Km' },
-    { time: '6:00AM', text: 'Wed: Run 7Km' },
-    { time: '5:45AM', text: 'Thurs: Run 7Km' },
-    { time: '7:00AM', text: 'Fri: Run 7Km' },
-    { time: '8:00AM', text: 'Sat: Run 10Km' },
-    { time: '6:30AM', text: 'Sun: Rest Day' },
-  ];
+const Task = ({ task, onToggle, onDelete, onToggleSmallGoal, onEdit }) => {
+  // Access weeklyGoals and create an array of objects, each containing a goal and its day.
+  const allSmallGoals = Object.keys(task.weeklyGoals || {}).flatMap(day => {
+    return task.weeklyGoals[day].map(goal => ({ ...goal, day: day }));
+  });
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+    });
+  };
+
+  const formatTime = (timeString) => {
+    const timeObj = new Date(timeString);
+    return timeObj.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const handleLongPress = () => {
+    Alert.alert(
+      'Goal Options',
+      task.title,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: task.completed ? 'Mark Incomplete' : 'Mark Complete',
+          onPress: onToggle
+        },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: onDelete
+        }
+      ]
+    );
+  };
 
   return (
-    <View style={styles.item}>
+    <TouchableOpacity 
+      style={[
+        styles.item,
+        task.completed && styles.completedItem
+      ]}
+      onLongPress={handleLongPress}
+      // Add a single-press handler to navigate to the edit screen
+      onPress={() => onEdit && onEdit(task)}
+      activeOpacity={0.9}
+    >
       <View style={styles.bigGoal}>
-        <Text style={styles.itemText}>{props.text}</Text>
-        <View style={styles.square}></View>
+        <View style={styles.goalHeader}>
+          <Text style={[
+            styles.itemText,
+            task.completed && styles.completedText
+          ]}>
+            {task.title || task.text}
+          </Text>
+          <View style={styles.goalMeta}>
+            <Text style={styles.dateText}>
+              {formatDate(task.createdAt || new Date().toISOString())}
+            </Text>
+            {task.reminderEnabled && (
+              <Text style={styles.reminderText}>🔔</Text>
+            )}
+            {task.isMainGoal && (
+              <Text style={styles.mainGoalBadge}>🎯</Text>
+            )}
+          </View>
+        </View>
+        
+        <TouchableOpacity 
+          style={[
+            styles.square,
+            task.completed && styles.completedSquare
+          ]}
+          // Retain the toggle functionality on the checkbox
+          onPress={onToggle}
+        >
+          {task.completed && <Text style={styles.checkmark}>✓</Text>}
+        </TouchableOpacity>
       </View>
       
       <ScrollView 
@@ -24,16 +93,44 @@ const Task = (props) => {
         style={styles.smallGoalScrollContainer}
         contentContainerStyle={styles.smallGoalContent}
       >
-        {smallGoals.map((goal, index) => (
-          <View key={index} style={styles.smallGoalWrapper}>
-            <Text style={styles.smallGoalTime}>{goal.time}</Text>
-            <Text style={styles.smallGoalText}>{goal.text}</Text>
+        {allSmallGoals.length > 0 ? allSmallGoals.map((goal, index) => (
+          <TouchableOpacity 
+            key={index} 
+            style={[
+              styles.smallGoalWrapper,
+              goal.completed && styles.completedSmallGoal
+            ]}
+            onPress={() => onToggleSmallGoal && onToggleSmallGoal(task.id, index)}
+          >
+            <Text style={styles.smallGoalTime}>{formatTime(goal.reminderTime)}</Text>
+            {/* Show the day of the week */}
+            <Text style={styles.smallGoalDay}>{goal.day}</Text>
+            {/* Truncate text to 2 lines */}
+            <Text 
+              style={[
+                styles.smallGoalText,
+                goal.completed && styles.completedSmallGoalText
+              ]}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {goal.text}
+            </Text>
+            {goal.completed && (
+              <View style={styles.smallGoalCheck}>
+                <Text style={styles.smallCheckmark}>✓</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        )) : (
+          <View style={styles.noSmallGoals}>
+            <Text style={styles.noSmallGoalsText}>No sub-goals yet. Add some to break down this goal!</Text>
           </View>
-        ))}
+        )}
       </ScrollView>
-    </View>
-  )
-}
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
   item: {
@@ -45,13 +142,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 20,
   },
+  completedItem: {
+    opacity: 0.7,
+  },
   bigGoal: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    marginBottom: 30,
     width: '100%',
+    marginBottom: 30,
+  },
+  goalHeader: {
+    flex: 1,
+    marginRight: 15,
+  },
+  goalMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    gap: 8,
   },
   square: {
     width: 24,
@@ -59,13 +168,37 @@ const styles = StyleSheet.create({
     backgroundColor: '#29ab4cff',
     opacity: 0.4,
     borderRadius: 5,
-    marginRight: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  completedSquare: {
+    opacity: 1,
+    backgroundColor: '#29ab4cff',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   itemText: {
-    maxWidth: '80%',
     fontSize: 32,
     color: '#FFFF',
     fontWeight: '700',
+  },
+  completedText: {
+    textDecorationLine: 'line-through',
+    color: '#888',
+  },
+  dateText: {
+    color: '#666',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  reminderText: {
+    fontSize: 14,
+  },
+  mainGoalBadge: {
+    fontSize: 14,
   },
   smallGoalScrollContainer: {
     width: '100%',
@@ -83,6 +216,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     height: 150,
     marginRight: 10,
+    position: 'relative',
+  },
+  completedSmallGoal: {
+    backgroundColor: '#1a4a1f',
+    opacity: 0.8,
   },
   smallGoalTime: {
     fontSize: 13,
@@ -95,14 +233,57 @@ const styles = StyleSheet.create({
     margin: 10,
     color: '#000',
   },
+  smallGoalDay: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: 12,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
   smallGoalText: {
     fontSize: 28,
     color: '#ffff',
     fontWeight: '700',
-    padding: 12,
+    paddingHorizontal: 12,
     borderRadius: 18,
     flex: 1,
     textAlignVertical: 'center',
+  },
+  completedSmallGoalText: {
+    textDecorationLine: 'line-through',
+    color: '#ccc',
+  },
+  smallGoalCheck: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 20,
+    height: 20,
+    backgroundColor: '#29ab4cff',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smallCheckmark: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  noSmallGoals: {
+    width: 200,
+    height: 150,
+    backgroundColor: '#444',
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  noSmallGoalsText: {
+    color: '#888',
+    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
 
